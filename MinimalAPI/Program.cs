@@ -108,12 +108,14 @@ app.MapGet("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound, BadR
 });
 
 // update by id 
-app.MapPut("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext) =>
+app.MapPut("/employee/{id:int}", async Task<Results<Ok<Employee>,NoContent, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext) =>
 {
     if (id != employee.Id) return TypedResults.BadRequest();
     var validateEmployee = await dbContext.Employee.AnyAsync(e => e.Id == id);
     if (!validateEmployee) return TypedResults.NotFound();
-    if (id != employee.Id) return TypedResults.BadRequest();
+    dbContext.Employee.Update(employee);
+    await dbContext.SaveChangesAsync();
+    return TypedResults.NoContent();
 });
 
 app.MapGet("/Employees", async (ApplicationDBContext dbContext) =>
