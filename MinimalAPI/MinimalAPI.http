@@ -2,25 +2,31 @@
 @Production = http://localhost:5214
 
 ### Developement 
-GET {{Developement}}/message/
+GET {{Developement}}/message
 Accept: application/json
 
 
 ### Production 
-GET {{Production}}/message/
+GET {{Production}}/message
 Accept: application/json
 
  
-### Create Department 
-POST {{Developement}}/Department/
+### Create Department / Department With Employee 
+POST {{Developement}}/Department
 Content-Type: application/json
 Accept: application/json
 {
-    "name":"Accounting"
+    "Name":"Finance",
+    "Employees":
+      [
+         { "name":"√œ„" },
+         { "name":"’›«" },
+         { "name":"Õ”«„" }
+      ]
 }
 
-### 
-POST {{Developement}}/employee/
+###  Create Employee
+POST {{Developement}}/employee
 Content-Type: application/json
 Accept: application/json
 {
@@ -29,10 +35,44 @@ Accept: application/json
 }
 
 
-###
+### Get All Employees 
 GET {{Developement}}/Employees
 Accept:application/json
 
-###
+### Get only one Employee using Id 
 GET {{Developement}}/employee/1
 Accept: application/json
+
+###
+
+PUT {{Developement}}/employee/1
+Content-Type: application/json
+Accept: application/json
+{
+    "Id":1,
+    0
+}
+
+
+### saving related entites 
+
+POST {{Developement}}/Department
+Content-Type: application/json
+accept: application/json
+
+{
+    "Name":"Finance",
+    "employees":
+      [
+         {
+         "name":"√œ„"
+         },
+         {
+         "name":"’›«"
+         },
+         {
+         "name":"Õ”«„"
+         },
+
+      ]
+}
