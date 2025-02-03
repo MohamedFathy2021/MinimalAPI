@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPI;
 using MinimalAPI.Entites;
@@ -41,13 +42,14 @@ builder.Services.AddRequestTimeouts(options =>
     options.AddPolicy("TestPolicy", TimeSpan.FromSeconds(2));
 });
 
+builder.Services.AddOutputCache();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 
 app.UseHttpsRedirection();
-
+app.UseOutputCache();
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -75,6 +77,8 @@ app.MapGet("/message", () => { return message; });
 #endregion
 
 #region Department CRUD
+
+// create department 
 app.MapPost("/department", async (Department department, ApplicationDBContext dbContext) =>
 {
     dbContext.Add(department);
@@ -82,12 +86,27 @@ app.MapPost("/department", async (Department department, ApplicationDBContext db
     return TypedResults.Ok();
 });
 
+// get all departments with employee
+app.MapGet("/departments", async (ApplicationDBContext dbContext) =>
+{
+    var departments = await dbContext.Department.Include(d => d.Employees).ToListAsync();
+    return TypedResults.Ok(departments);
+});
+
+// get department by id 
+app.MapGet("/department/{id:int}", async Task<Results<Ok<Department>, NotFound>> (int id, ApplicationDBContext dbContext) =>
+{
+    var department = await dbContext.Department.FirstOrDefaultAsync(d => d.Id == id);
+    if (department == null) return TypedResults.NotFound();
+    return TypedResults.Ok(department);
+});
+
 #endregion
 
 #region Employee CRUD
 
 // create
-app.MapPost("/employee", async (Employee employee, ApplicationDBContext dbContext) =>
+app.MapPost("/employee", async (Employee employee, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
 {
     var isValidDepartmentId = await dbContext.Department.AnyAsync(d => d.Id == employee.DepartmentId);
     if (!isValidDepartmentId)
@@ -96,11 +115,12 @@ app.MapPost("/employee", async (Employee employee, ApplicationDBContext dbContex
     }
     dbContext.Add(employee);
     await dbContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-employee", default);
     return TypedResults.Ok();
 });
 
 // Get Employee By Id
-app.MapGet("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound, BadRequest>> (int id, ApplicationDBContext dbContext) =>
+app.MapGet("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound>> (int id, ApplicationDBContext dbContext) =>
 {
     var employee = await dbContext.Employee.FirstOrDefaultAsync(e => e.Id == id);
     if (employee is null) return TypedResults.NotFound();
@@ -108,7 +128,7 @@ app.MapGet("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound, BadR
 });
 
 // update by id 
-app.MapPut("/employee/{id:int}", async Task<Results<Ok<Employee>,NoContent, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext) =>
+app.MapPut("/employee/{id:int}", async Task<Results<Ok<object>, NoContent, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext) =>
 {
     if (id != employee.Id) return TypedResults.BadRequest();
     var validateEmployee = await dbContext.Employee.AnyAsync(e => e.Id == id);
@@ -120,9 +140,15 @@ app.MapPut("/employee/{id:int}", async Task<Results<Ok<Employee>,NoContent, NotF
 
 app.MapGet("/Employees", async (ApplicationDBContext dbContext) =>
 {
-    var employeesInfo = await dbContext.Employee.Include(e => e.Department).ToListAsync();
+    var employeesInfo = await dbContext.Employee.Include(e => e.Department).Select(employee => new
+    {
+        employee.Id,
+        employee.Name,
+        Department = employee.Department.Name,
+    }).ToListAsync();
     return TypedResults.Ok(employeesInfo);
-});
+}).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(30)).Tag("all-employee"));
+
 app.UseRequestTimeouts();
 app.Run();
 

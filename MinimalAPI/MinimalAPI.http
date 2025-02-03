@@ -30,12 +30,11 @@ POST {{Developement}}/employee
 Content-Type: application/json
 Accept: application/json
 {
-    "name":50,
-    "DepartmentId":8
+    "name":"Hatem",
+    "DepartmentId":4
 }
 
-
-### Get All Employees 
+### Get All Employees  with department 
 GET {{Developement}}/Employees
 Accept:application/json
 
@@ -43,36 +42,16 @@ Accept:application/json
 GET {{Developement}}/employee/1
 Accept: application/json
 
-###
-
+### update employee 
 PUT {{Developement}}/employee/1
 Content-Type: application/json
 Accept: application/json
 {
     "Id":1,
-    0
 }
 
-
-### saving related entites 
-
-POST {{Developement}}/Department
+### Get all department with employees 
+GET {{Developement}}/departments
 Content-Type: application/json
-accept: application/json
-
-{
-    "Name":"Finance",
-    "employees":
-      [
-         {
-         "name":"√œ„"
-         },
-         {
-         "name":"’›«"
-         },
-         {
-         "name":"Õ”«„"
-         },
-
-      ]
-}
+Accept: application/json
+ 
