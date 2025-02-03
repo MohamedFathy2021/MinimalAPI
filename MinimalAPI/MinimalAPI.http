@@ -1,0 +1,38 @@
+@Developement = https://localhost:7208
+@Production = http://localhost:5214
+
+### Developement 
+GET {{Developement}}/message/
+Accept: application/json
+
+
+### Production 
+GET {{Production}}/message/
+Accept: application/json
+
+ 
+### Create Department 
+POST {{Developement}}/Department/
+Content-Type: application/json
+Accept: application/json
+{
+    "name":"Accounting"
+}
+
+### 
+POST {{Developement}}/employee/
+Content-Type: application/json
+Accept: application/json
+{
+    "name":50,
+    "DepartmentId":8
+}
+
+
+###
+GET {{Developement}}/Employees
+Accept:application/json
+
+###
+GET {{Developement}}/employee/1
+Accept: application/json
