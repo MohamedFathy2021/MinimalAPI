@@ -79,19 +79,20 @@ app.MapGet("/message", () => { return message; });
 #region Department CRUD
 
 // create department 
-app.MapPost("/department", async (Department department, ApplicationDBContext dbContext) =>
+app.MapPost("/department", async (Department department, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
 {
     dbContext.Add(department);
     await dbContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-Department", default);
     return TypedResults.Ok();
 });
 
 // get all departments with employee
-app.MapGet("/departments", async (ApplicationDBContext dbContext) =>
+app.MapGet("/department", async (ApplicationDBContext dbContext) =>
 {
     var departments = await dbContext.Department.Include(d => d.Employees).ToListAsync();
     return TypedResults.Ok(departments);
-});
+}).CacheOutput(x => x.Expire(TimeSpan.FromSeconds(60)).Tag("all-Department"));
 
 // get department by id 
 app.MapGet("/department/{id:int}", async Task<Results<Ok<Department>, NotFound>> (int id, ApplicationDBContext dbContext) =>
@@ -101,11 +102,34 @@ app.MapGet("/department/{id:int}", async Task<Results<Ok<Department>, NotFound>>
     return TypedResults.Ok(department);
 });
 
+// update department 
+app.MapPut("/department/{id:int}", async Task<Results<NoContent, NotFound, BadRequest>> (int id, Department department, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
+{
+    if (id != department.Id) return TypedResults.BadRequest();
+    var validateDepartment = await dbContext.Department.AnyAsync(d => d.Id == id);
+    if (!validateDepartment) return TypedResults.NotFound();
+    dbContext.Department.Update(department);
+    await dbContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-Department", default);
+    return TypedResults.NoContent();
+});
+
+// delete department
+app.MapDelete("/department/{id:int}", async Task<Results<NoContent, NotFound, BadRequest>> (int id, ApplicationDBContext dBContext, IOutputCacheStore outputCacheStore) =>
+{
+    var department = await dBContext.Department.FindAsync(id);
+    if (department is null) return TypedResults.NotFound();
+    dBContext.Department.Remove(department);
+    await dBContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-Department", default);
+    return TypedResults.NoContent();
+});
+
 #endregion
 
 #region Employee CRUD
 
-// create
+// create employee
 app.MapPost("/employee", async (Employee employee, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
 {
     var isValidDepartmentId = await dbContext.Department.AnyAsync(d => d.Id == employee.DepartmentId);
@@ -115,6 +139,8 @@ app.MapPost("/employee", async (Employee employee, ApplicationDBContext dbContex
     }
     dbContext.Add(employee);
     await dbContext.SaveChangesAsync();
+
+    // update caching in case of adding new employee
     await outputCacheStore.EvictByTagAsync("all-employee", default);
     return TypedResults.Ok();
 });
@@ -128,17 +154,19 @@ app.MapGet("/employee/{id:int}", async Task<Results<Ok<Employee>, NotFound>> (in
 });
 
 // update by id 
-app.MapPut("/employee/{id:int}", async Task<Results<Ok<object>, NoContent, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext) =>
+app.MapPut("/employee/{id:int}", async Task<Results<NoContent, NotFound, BadRequest>> (int id, Employee employee, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
 {
     if (id != employee.Id) return TypedResults.BadRequest();
     var validateEmployee = await dbContext.Employee.AnyAsync(e => e.Id == id);
     if (!validateEmployee) return TypedResults.NotFound();
     dbContext.Employee.Update(employee);
     await dbContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-employee", default);
     return TypedResults.NoContent();
 });
 
-app.MapGet("/Employees", async (ApplicationDBContext dbContext) =>
+//get all employees with department
+app.MapGet("/Employee", async (ApplicationDBContext dbContext) =>
 {
     var employeesInfo = await dbContext.Employee.Include(e => e.Department).Select(employee => new
     {
@@ -147,7 +175,19 @@ app.MapGet("/Employees", async (ApplicationDBContext dbContext) =>
         Department = employee.Department.Name,
     }).ToListAsync();
     return TypedResults.Ok(employeesInfo);
-}).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(30)).Tag("all-employee"));
+})
+ .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(30)).Tag("all-employee"));
+
+// delete employee
+app.MapDelete("/employee/{id:int}", async Task<Results<NoContent, NotFound, BadRequest>> (int id, ApplicationDBContext dbContext, IOutputCacheStore outputCacheStore) =>
+{
+    var employee = await dbContext.Employee.FindAsync(id);
+    if (employee is null) return TypedResults.NotFound();
+    dbContext.Employee.Remove(employee);
+    await dbContext.SaveChangesAsync();
+    await outputCacheStore.EvictByTagAsync("all-employee", default);
+    return TypedResults.NoContent();
+});
 
 app.UseRequestTimeouts();
 app.Run();

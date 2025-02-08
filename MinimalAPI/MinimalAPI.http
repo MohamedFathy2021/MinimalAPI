@@ -16,26 +16,48 @@ POST {{Developement}}/Department
 Content-Type: application/json
 Accept: application/json
 {
-    "Name":"Finance",
+    "Name":"HR",
     "Employees":
       [
-         { "name":"√œ„" },
-         { "name":"’›«" },
-         { "name":"Õ”«„" }
+         { "name":"√œ„ „Õ„œ " },
+         { "name":"’›« „Õ„œ " },
+         { "name":" › ÕÌ Õ”«„" }
       ]
 }
+
+
+
+
+### Get all department with employees 
+GET {{Developement}}/department
+Content-Type: application/json
+Accept: application/json
+
+### Get department by id 
+GET {{Developement}}/department/6
+Content-Type: application/json
+Accept: application/json
+
+
+
+### delete department 
+DELETE {{Developement}}/Department/1
+Content-Type: application/json
+Accept: application/json
+
+#########################################
 
 ###  Create Employee
 POST {{Developement}}/employee
 Content-Type: application/json
 Accept: application/json
 {
-    "name":"Hatem",
-    "DepartmentId":4
+    "name":"Nasser Ahmed Ali",
+    "DepartmentId":1
 }
 
 ### Get All Employees  with department 
-GET {{Developement}}/Employees
+GET {{Developement}}/Employee
 Accept:application/json
 
 ### Get only one Employee using Id 
@@ -43,15 +65,20 @@ GET {{Developement}}/employee/1
 Accept: application/json
 
 ### update employee 
-PUT {{Developement}}/employee/1
+PUT {{Developement}}/employee/2
 Content-Type: application/json
 Accept: application/json
 {
-    "Id":1,
+    "Id":2,
+    "Name":"Adam Mohamed Fathy",
+    "departmentId":2
 }
 
-### Get all department with employees 
-GET {{Developement}}/departments
+### delete employee 
+DELETE {{Developement}}/employee/1
 Content-Type: application/json
 Accept: application/json
+
+
+
  
